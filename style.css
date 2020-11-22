@@ -1,15 +1,15 @@
 *,
 *::before,
 *::after {
-  box-sizing: border-box;
   font-family: Gotham rounded, sans-serif;
+  box-sizing: border-box;
   font-weight: normal;
 }
 
 body {
-  margin: 0;
-  padding: 0;
   background: linear-gradient(to left, #005577, #00ff6c);
+  padding: 0;
+  margin: 0;
 }
 
 .calculator {
