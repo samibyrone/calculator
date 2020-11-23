@@ -1,91 +1,138 @@
-const isOperator = value => /[\+\-\*\/]/g.test(value);
+const OPERATOR_RE = /[\+\-\*\/]/;
+
+const isOperator = (value) => OPERATOR_RE.test(value);
 
 class Calculator {
   constructor(el) {
     // select dom elements
     this.el = el;
     this.operands = {
-      current: el.querySelector('.output > .operands.current'),
-      previous: el.querySelector('.output > .operands.previous'),
+      current: el.querySelector(".output > .operands.current"),
+      previous: el.querySelector(".output > .operands.previous"),
     };
 
     // bind methods to the `this`
-    this.clickHandler = this.clickHandler.bind(this);
-    this.handleDelete = this.handleDelete.bind(this);
-    this.handlePeriod = this.handlePeriod.bind(this);
-    this.handleNumber = this.handleNumber.bind(this);
-    this.handleOperator = this.handleOperator.bind(this);
-    this.handleEqualsTo = this.handleEqualsTo.bind(this);
+    this.handler = this.handler.bind(this);
+    this.delete = this.delete.bind(this);
+    this.reset = this.reset.bind(this);
+    this.period = this.period.bind(this);
+    this.number = this.number.bind(this);
+    this.operator = this.operator.bind(this);
+    this.compute = this.compute.bind(this);
 
     this.init();
   }
 
   init() {
-    this.el.addEventListener('click', this.clickHandler);
-    this.updateOutputs('', '');
+    this.el.addEventListener("click", this.handler);
+    this.reset();
   }
-  
-  clickHandler(event) {
-    if (event.target.tagName === 'BUTTON') {
+
+  handler(event) {
+    const buttonIsClick = event.target.tagName === "BUTTON";
+
+    if (buttonIsClick) {
       const value = event.target.innerText;
 
-      switch(value) {
-        case 'AC':
-          this.handleClear();
-          break;
-        case 'DEL':
-          this.handleDelete();
-          break;
-        case '.':
-          this.handlePeriod();
-          break;
-        case '=':
-          this.handleEqualsTo();
-          break;
-        default: {
-          if (isOperator(value)) {
-            this.handleOperator(value);
-            break;
-          }
-
-          this.handleNumber(value);
-          break;
-        }
+      switch (value) {
+        case "AC":
+          return this.reset();
+        case "DEL":
+          return this.delete();
+        case ".":
+          return this.period();
+        case "=":
+          return this.compute();
+        default:
+          if (isOperator(value)) return this.operator(value);
+          return this.number(value);
       }
     }
   }
 
-  handleClear() {
-    console.log('Clear output');
+  reset() {
+    this.updateOutput("", "current");
+    this.updateOutput("", "previous");
   }
 
-  handleDelete() {
-    const currentText = this.currentOutput;
-    currentText.slice(currentText.length - 1);
-    this.updateOutputs(currentText);
+  delete() {
+    const currentText = this.getOperandValue();
+    const currentTextArray = currentText.split("");
+    // remove last item
+    currentTextArray.splice(currentTextArray.length - 1, 1);
+    this.updateOutput(currentTextArray.join(""));
   }
 
-  handleOperator(operator) {
-    console.log(operator + ' was clicked');
+  empty() {
+    const currentText = this.getOperandValue();
+    return currentText.length === 0;
   }
 
-  handleNumber(number) {
-    console.log(number + ' was clicked');
+  endsWithAnOperator() {
+    const currentText = this.getOperandValue();
+    const lastCharacter = currentText[currentText.length - 1];
+    return isOperator(lastCharacter);
   }
 
-  handlePeriod() {
-    console.log('. was clicked');
+  endsWithAPeriod() {
+    const currentText = this.getOperandValue();
+    return currentText.endsWith(".");
   }
 
-  handleEqualsTo() {
-    console.log('Handle equals to');
+  lastPartContainsAPeriod() {
+    const currentText = this.getOperandValue();
+    const parts = currentText.split(new RegExp(OPERATOR_RE, "g"));
+    const lastPart = parts[parts.length - 1] || "";
+    return new RegExp(/\./, "g").test(lastPart);
   }
 
-  updateOutputs(current, previous) {
-    this.operands.current.innerText = previous;
-    this.operands.previous.innerText = current;
+  shouldAddPeriod() {
+    return (
+      !this.empty() &&
+      !this.endsWithAnOperator() &&
+      !this.lastPartContainsAPeriod()
+    );
+  }
+
+  shouldAddOperatorOrCompute() {
+    return (
+      !this.empty() && !this.endsWithAnOperator() && !this.endsWithAPeriod()
+    );
+  }
+
+  operator(operator) {
+    if (this.shouldAddOperatorOrCompute()) {
+      const newCurrent = `${this.getOperandValue()}${operator}`;
+      this.updateOutput(newCurrent);
+    }
+  }
+
+  number(number) {
+    const newCurrent = `${this.getOperandValue()}${number}`;
+    this.updateOutput(newCurrent);
+  }
+
+  period() {
+    if (this.shouldAddPeriod()) {
+      const newCurrent = `${this.getOperandValue()}.`;
+      this.updateOutput(newCurrent);
+    }
+  }
+
+  compute() {
+    if (this.shouldAddOperatorOrCompute()) {
+      const result = eval(this.getOperandValue());
+      this.updateOutput(result);
+    }
+  }
+
+  updateOutput(value, position = "current") {
+    this.operands[position].innerText = value;
+  }
+
+  getOperandValue(position = "current") {
+    return this.operands[position].innerText;
   }
 }
 
-
-new Calculator(document.querySelector('.calculator'));
+new Calculator(document.querySelector(".calculator"));
